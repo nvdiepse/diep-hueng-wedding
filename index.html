@@ -4348,13 +4348,13 @@
       }
 
       const SEEN_KEY = 'inviteModalSeen_v1';
-      const forceShow =
-        searchParams.has('thiep') ||
-        searchParams.has('invite') ||
-        hashParams.has('thiep') ||
-        hashParams.has('invite') ||
-        !!guestName ||
-        !!guestSideRaw;
+      // Không dùng biến `params` (đã đổi thành searchParams/hashParams)
+      const forceShow = !!(
+        param('thiep') ||
+        param('invite') ||
+        guestName ||
+        guestSideRaw
+      );
       const alreadySeen = sessionStorage.getItem(SEEN_KEY) === '1';
 
       function lockPage(on) {
