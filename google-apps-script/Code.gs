@@ -11,7 +11,7 @@
  * https://docs.google.com/spreadsheets/d/<<<ID>>>/edit
  */
 
-var SPREADSHEET_ID = 'PASTE_SPREADSHEET_ID_HERE'; // ← ĐIỀN ID THẬT
+var SPREADSHEET_ID = '1tu_S3IHFCbvDocILuxHYCX99wfzx4Gv-YyOSHhGmXXY';
 var SHEET_NAME = 'RSVP';
 
 function normalizeId_(raw) {
