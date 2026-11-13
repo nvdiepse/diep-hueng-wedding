@@ -4238,26 +4238,52 @@
   </div>
 
   <script>
-    // ── Invite modal + khách mời từ URL (ten-khach-moi, khach-moi) ──
-    // Ưu tiên ?query; fallback #hash — Messenger scrape bỏ hash nên preview dùng chung OG trang chủ
+    // ── Invite modal + khách mời từ URL ──
+    // Messenger hay mất ảnh với ?query và #hash → dùng path /m/{gai|trai|both}/{tên}
     (function () {
       const searchParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(
         (window.location.hash || '').replace(/^#/, '').replace(/^\?/, '')
       );
       const param = (key) => searchParams.get(key) || hashParams.get(key) || '';
-      const guestName = (param('ten-khach-moi') || param('ten_khach_moi') || '').trim();
-      const guestSideRaw = param('khach-moi') || param('khach_moi') || '';
 
-      // Messenger cache theo full URL có ? → mất ảnh. Đổi ? → # để share dùng chung OG trang chủ.
-      if (window.location.search && (guestName || guestSideRaw || searchParams.has('thiep') || searchParams.has('invite'))) {
-        const hashParts = [];
-        ['ten-khach-moi', 'ten_khach_moi', 'khach-moi', 'khach_moi', 'thiep', 'invite'].forEach(function (k) {
-          const v = searchParams.get(k);
-          if (v != null && v !== '') hashParts.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
-        });
-        if (hashParts.length) {
-          history.replaceState(null, '', window.location.pathname + '#' + hashParts.join('&'));
+      function normalizeSide(raw) {
+        const s = (raw || '').trim().toLowerCase();
+        if (!s) return 'both';
+        if (/trai|nhà trai|nha trai/.test(s)) return 'trai';
+        if (/gái|gai|nhà gái|nha gai/.test(s)) return 'gai';
+        if (s === 'both' || s === 'ca-hai' || s === 'cả hai') return 'both';
+        return 'both';
+      }
+
+      // Path: /m/gai/Tên%20khách
+      let pathName = '';
+      let pathSide = '';
+      const pathMatch = window.location.pathname.match(/^\/m\/([^/]+)(?:\/(.*))?\/?$/);
+      if (pathMatch) {
+        pathSide = decodeURIComponent(pathMatch[1] || '').trim();
+        pathName = decodeURIComponent((pathMatch[2] || '').replace(/\/$/, '')).trim();
+      }
+
+      const guestName = (
+        pathName ||
+        param('ten-khach-moi') ||
+        param('ten_khach_moi') ||
+        ''
+      ).trim();
+      const guestSideRaw = pathSide || param('khach-moi') || param('khach_moi') || '';
+      const sideMode = normalizeSide(guestSideRaw);
+
+      // Chuẩn hoá URL share → /m/... (tránh ? và # làm Messenger mất thumbnail)
+      if (guestName || (guestSideRaw && guestSideRaw !== 'both') || searchParams.has('thiep') || searchParams.has('invite')) {
+        const sideSeg = sideMode === 'both' && !guestSideRaw ? 'both' : sideMode;
+        const nicePath = guestName
+          ? '/m/' + encodeURIComponent(sideSeg) + '/' + encodeURIComponent(guestName)
+          : '/m/' + encodeURIComponent(sideSeg);
+        const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
+        const targetPath = nicePath.replace(/\/$/, '');
+        if (currentPath !== targetPath || window.location.search || window.location.hash) {
+          history.replaceState(null, '', nicePath);
         }
       }
 
@@ -4265,16 +4291,6 @@
         gai: { rsvpValue: '28/11 — Lễ Vu Quy (Nhà Gái, Thái Nguyên)' },
         trai: { rsvpValue: '29/11 — Lễ Thành Hôn (Nhà Trai, Hưng Yên)' },
       };
-
-      function normalizeSide(raw) {
-        const s = (raw || '').trim().toLowerCase();
-        if (!s) return 'both';
-        if (/trai|nhà trai|nha trai/.test(s)) return 'trai';
-        if (/gái|gai|nhà gái|nha gai/.test(s)) return 'gai';
-        return 'both';
-      }
-
-      const sideMode = normalizeSide(guestSideRaw);
 
       // Điền sẵn RSVP
       const nameInput = document.getElementById('name');

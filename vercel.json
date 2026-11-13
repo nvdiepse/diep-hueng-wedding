@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/m/:side/:name*", "destination": "/index.html" },
+    { "source": "/m/:side", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/og.jpg",
