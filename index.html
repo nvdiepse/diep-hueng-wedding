@@ -4249,6 +4249,18 @@
       const guestName = (param('ten-khach-moi') || param('ten_khach_moi') || '').trim();
       const guestSideRaw = param('khach-moi') || param('khach_moi') || '';
 
+      // Messenger cache theo full URL có ? → mất ảnh. Đổi ? → # để share dùng chung OG trang chủ.
+      if (window.location.search && (guestName || guestSideRaw || searchParams.has('thiep') || searchParams.has('invite'))) {
+        const hashParts = [];
+        ['ten-khach-moi', 'ten_khach_moi', 'khach-moi', 'khach_moi', 'thiep', 'invite'].forEach(function (k) {
+          const v = searchParams.get(k);
+          if (v != null && v !== '') hashParts.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+        });
+        if (hashParts.length) {
+          history.replaceState(null, '', window.location.pathname + '#' + hashParts.join('&'));
+        }
+      }
+
       const INVITE_DAYS = {
         gai: { rsvpValue: '28/11 — Lễ Vu Quy (Nhà Gái, Thái Nguyên)' },
         trai: { rsvpValue: '29/11 — Lễ Thành Hôn (Nhà Trai, Hưng Yên)' },
