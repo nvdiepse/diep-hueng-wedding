@@ -4407,10 +4407,11 @@
       }
 
       const SEEN_KEY = 'inviteModalSeen_v1';
-      // Không dùng biến `params` (đã đổi thành searchParams/hashParams)
       const forceShow = !!(
-        param('thiep') ||
-        param('invite') ||
+        searchParams.has('thiep') ||
+        searchParams.has('invite') ||
+        hashParams.has('thiep') ||
+        hashParams.has('invite') ||
         guestName ||
         guestSideRaw
       );
