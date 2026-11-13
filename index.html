@@ -4239,7 +4239,8 @@
 
   <script>
     // ── Invite modal + khách mời từ URL ──
-    // Messenger hay mất ảnh với ?query và #hash → dùng path /m/{gai|trai|both}/{tên}
+    // Định dạng chuẩn: /#ten-khach-moi=...&khach-moi=...
+    // Vẫn đọc được ?query và /m/... (link cũ)
     (function () {
       const searchParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(
@@ -4256,7 +4257,7 @@
         return 'both';
       }
 
-      // Path: /m/gai/Tên%20khách
+      // Path cũ: /m/gai/Tên%20khách
       let pathName = '';
       let pathSide = '';
       const pathMatch = window.location.pathname.match(/^\/m\/([^/]+)(?:\/(.*))?\/?$/);
@@ -4274,16 +4275,21 @@
       const guestSideRaw = pathSide || param('khach-moi') || param('khach_moi') || '';
       const sideMode = normalizeSide(guestSideRaw);
 
-      // Chuẩn hoá URL share → /m/... (tránh ? và # làm Messenger mất thumbnail)
-      if (guestName || (guestSideRaw && guestSideRaw !== 'both') || searchParams.has('thiep') || searchParams.has('invite')) {
-        const sideSeg = sideMode === 'both' && !guestSideRaw ? 'both' : sideMode;
-        const nicePath = guestName
-          ? '/m/' + encodeURIComponent(sideSeg) + '/' + encodeURIComponent(guestName)
-          : '/m/' + encodeURIComponent(sideSeg);
-        const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
-        const targetPath = nicePath.replace(/\/$/, '');
-        if (currentPath !== targetPath || window.location.search || window.location.hash) {
-          history.replaceState(null, '', nicePath);
+      // Chuẩn hoá về hash: /#ten-khach-moi=...&khach-moi=...
+      if (guestName || guestSideRaw || searchParams.has('thiep') || searchParams.has('invite')) {
+        const hashParts = [];
+        if (guestName) hashParts.push('ten-khach-moi=' + encodeURIComponent(guestName));
+        if (guestSideRaw) {
+          const sideLabel =
+            sideMode === 'trai' ? 'Nhà trai' : sideMode === 'gai' ? 'Nhà gái' : guestSideRaw;
+          hashParts.push('khach-moi=' + encodeURIComponent(sideLabel));
+        }
+        if (searchParams.has('thiep') || hashParams.has('thiep')) hashParts.push('thiep=1');
+        if (searchParams.has('invite') || hashParams.has('invite')) hashParts.push('invite=1');
+        const niceHash = '#' + hashParts.join('&');
+        const onInvitePath = /^\/m\//.test(window.location.pathname);
+        if (onInvitePath || window.location.search || window.location.hash !== niceHash) {
+          history.replaceState(null, '', '/' + niceHash);
         }
       }
 
