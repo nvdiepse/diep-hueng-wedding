@@ -4003,9 +4003,10 @@
 
       <!-- Form — dán URL Web App Google Apps Script vào action (xem google-apps-script/README.md) -->
       <form class="rsvp-form reveal" id="rsvpForm"
-            action="https://script.google.com/macros/s/AKfycbzHMOFQZGHPq60fXpRUPm5FpGHH1UkUprE9rE5FGILdp2DtvUI0FRNAweZzZKJ0nAxK7w/exec"
+            action="https://script.google.com/macros/s/AKfycbzBMctFkLHC3KfWDuGmIkdaCIZTfJ1FOGCKVweYWT6b8M72XyJ-90b0pt8UkVcD3M_Z/exec"
             method="POST">
         <input type="hidden" name="xac_nhan" id="attendHidden" value="Tôi sẽ có mặt" />
+        <input type="hidden" name="khach_moi" id="khachMoiHidden" value="" />
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true"
                style="position:absolute;left:-9999px;height:0;width:0;opacity:0;" />
 
@@ -4239,9 +4240,9 @@
 
   <script>
     // ── Invite modal + khách mời từ URL ──
-    // Định dạng chuẩn: /#ten-khach-moi=...&khach-moi=...
+    // Định dạng chuẩn: /#ten-khach-moi=...&khach-moi=Nhà%20trai|Nhà%20gái
     // Vẫn đọc được ?query và /m/... (link cũ)
-    (function () {
+    function readInviteFromUrl() {
       const searchParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(
         (window.location.hash || '').replace(/^#/, '').replace(/^\?/, '')
@@ -4257,7 +4258,6 @@
         return 'both';
       }
 
-      // Path cũ: /m/gai/Tên%20khách
       let pathName = '';
       let pathSide = '';
       const pathMatch = window.location.pathname.match(/^\/m\/([^/]+)(?:\/(.*))?\/?$/);
@@ -4274,15 +4274,36 @@
       ).trim();
       const guestSideRaw = pathSide || param('khach-moi') || param('khach_moi') || '';
       const sideMode = normalizeSide(guestSideRaw);
+      const sideLabel =
+        sideMode === 'trai' ? 'Nhà trai' : sideMode === 'gai' ? 'Nhà gái' : guestSideRaw ? 'Cả hai' : '';
+
+      return {
+        guestName,
+        guestSideRaw,
+        sideMode,
+        sideLabel,
+        searchParams,
+        hashParams
+      };
+    }
+
+    (function () {
+      const invite = readInviteFromUrl();
+      const guestName = invite.guestName;
+      const guestSideRaw = invite.guestSideRaw;
+      const sideMode = invite.sideMode;
+      const sideLabel = invite.sideLabel;
+      const searchParams = invite.searchParams;
+      const hashParams = invite.hashParams;
 
       // Chuẩn hoá về hash: /#ten-khach-moi=...&khach-moi=...
       if (guestName || guestSideRaw || searchParams.has('thiep') || searchParams.has('invite')) {
         const hashParts = [];
         if (guestName) hashParts.push('ten-khach-moi=' + encodeURIComponent(guestName));
         if (guestSideRaw) {
-          const sideLabel =
-            sideMode === 'trai' ? 'Nhà trai' : sideMode === 'gai' ? 'Nhà gái' : guestSideRaw;
-          hashParts.push('khach-moi=' + encodeURIComponent(sideLabel));
+          hashParts.push(
+            'khach-moi=' + encodeURIComponent(sideMode === 'both' ? guestSideRaw : sideLabel)
+          );
         }
         if (searchParams.has('thiep') || hashParams.has('thiep')) hashParts.push('thiep=1');
         if (searchParams.has('invite') || hashParams.has('invite')) hashParts.push('invite=1');
@@ -4298,7 +4319,7 @@
         trai: { rsvpValue: '29/11 — Lễ Thành Hôn (Nhà Trai, Hưng Yên)' },
       };
 
-      // Điền sẵn RSVP
+      // Điền sẵn RSVP + phía nhà trai/gái từ URL
       const nameInput = document.getElementById('name');
       if (nameInput && guestName) nameInput.value = guestName;
       const attendDay = document.getElementById('attendDay');
@@ -4306,6 +4327,10 @@
         if (sideMode === 'gai') attendDay.value = INVITE_DAYS.gai.rsvpValue;
         else if (sideMode === 'trai') attendDay.value = INVITE_DAYS.trai.rsvpValue;
         else attendDay.value = 'Cả hai ngày';
+      }
+      const khachMoiHidden = document.getElementById('khachMoiHidden');
+      if (khachMoiHidden) {
+        khachMoiHidden.value = sideLabel || '';
       }
 
       const modal = document.getElementById('inviteModal');
@@ -4854,8 +4879,15 @@
         }
 
         const willAttend = !rsvpForm.classList.contains('is-declined');
+        // Ưu tiên hidden đã set lúc mở thiệp; fallback đọc lại URL khi submit
+        const inviteNow = typeof readInviteFromUrl === 'function' ? readInviteFromUrl() : null;
+        const khachMoi =
+          (document.getElementById('khachMoiHidden')?.value || '').trim() ||
+          (inviteNow && inviteNow.sideLabel) ||
+          '';
         const payload = {
           name: (document.getElementById('name')?.value || '').trim(),
+          khach_moi: khachMoi,
           xac_nhan: attendHidden ? attendHidden.value : '',
           so_nguoi: willAttend ? (document.getElementById('guests')?.value || '') : '',
           ngay_tham_du: willAttend ? (document.getElementById('attendDay')?.value || '') : '',

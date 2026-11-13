@@ -28,22 +28,35 @@ function getSpreadsheet_() {
   return SpreadsheetApp.openById(id);
 }
 
+function ensureRsvpHeaders_(sheet) {
+  var headers = [
+    'Thoi_gian',
+    'Ho_ten',
+    'Khach_moi',
+    'Xac_nhan',
+    'So_nguoi',
+    'Ngay_tham_du',
+    'Loi_chuc'
+  ];
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    return;
+  }
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var existing = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (existing.indexOf('Khach_moi') === -1) {
+    // Sheet cũ chưa có cột → thêm vào cuối
+    sheet.getRange(1, lastCol + 1).setValue('Khach_moi');
+  }
+}
+
 function getRsvpSheet_() {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
   }
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      'Thoi_gian',
-      'Ho_ten',
-      'Xac_nhan',
-      'So_nguoi',
-      'Ngay_tham_du',
-      'Loi_chuc'
-    ]);
-  }
+  ensureRsvpHeaders_(sheet);
   return { ss: ss, sheet: sheet };
 }
 
@@ -52,6 +65,7 @@ function parseBody_(e) {
   if (e && e.parameter && (e.parameter.name || e.parameter.Ho_ten || e.parameter.xac_nhan)) {
     return {
       name: e.parameter.name || e.parameter.Ho_ten || '',
+      khach_moi: e.parameter.khach_moi || e.parameter.Khach_moi || '',
       xac_nhan: e.parameter.xac_nhan || '',
       so_nguoi: e.parameter.so_nguoi || '',
       ngay_tham_du: e.parameter.ngay_tham_du || '',
@@ -72,6 +86,15 @@ function parseBody_(e) {
   throw new Error('Không nhận được dữ liệu POST (e.parameter / postData trống)');
 }
 
+function normalizeKhachMoi_(raw) {
+  var s = String(raw || '').trim().toLowerCase();
+  if (!s) return '';
+  if (/trai|nhà trai|nha trai/.test(s)) return 'Nhà trai';
+  if (/gái|gai|nhà gái|nha gai/.test(s)) return 'Nhà gái';
+  if (/cả hai|ca hai|both/.test(s)) return 'Cả hai';
+  return String(raw || '').trim();
+}
+
 function doPost(e) {
   // Không bọc try/catch toàn hàm: lỗi sẽ hiện Failed trong Executions (dễ debug)
   var data = parseBody_(e);
@@ -89,14 +112,33 @@ function doPost(e) {
 
   var ref = getRsvpSheet_();
   var now = Utilities.formatDate(new Date(), 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd HH:mm:ss');
-  var row = [
-    now,
-    String(data.name || '').trim(),
-    data.xac_nhan || '',
-    data.so_nguoi || '',
-    data.ngay_tham_du || '',
-    data.loi_chuc || ''
-  ];
+  var khachMoi = normalizeKhachMoi_(data.khach_moi || data.Khach_moi || '');
+  var header = ref.sheet.getRange(1, 1, 1, Math.max(ref.sheet.getLastColumn(), 1)).getValues()[0];
+  var khachIdx = header.indexOf('Khach_moi');
+
+  // Header chuẩn mới: Khach_moi ở cột 3. Sheet cũ: cột cuối.
+  var row;
+  if (khachIdx === 2) {
+    row = [
+      now,
+      String(data.name || '').trim(),
+      khachMoi,
+      data.xac_nhan || '',
+      data.so_nguoi || '',
+      data.ngay_tham_du || '',
+      data.loi_chuc || ''
+    ];
+  } else {
+    row = [
+      now,
+      String(data.name || '').trim(),
+      data.xac_nhan || '',
+      data.so_nguoi || '',
+      data.ngay_tham_du || '',
+      data.loi_chuc || '',
+      khachMoi
+    ];
+  }
 
   ref.sheet.appendRow(row);
   SpreadsheetApp.flush();
@@ -105,10 +147,11 @@ function doPost(e) {
 
   return jsonResponse({
     result: 'success',
-    version: 'v4',
+    version: 'v5',
     spreadsheet: ref.ss.getName(),
     spreadsheetId: ref.ss.getId(),
     sheet: SHEET_NAME,
+    khach_moi: khachMoi,
     row: row
   });
 }
@@ -118,12 +161,12 @@ function doGet() {
     var ref = getRsvpSheet_();
     return jsonResponse({
       result: 'ok',
-      version: 'v4',
+      version: 'v5',
       spreadsheet: ref.ss.getName(),
       spreadsheetId: ref.ss.getId(),
       sheet: SHEET_NAME,
       lastRow: ref.sheet.getLastRow(),
-      message: 'RSVP endpoint sẵn sàng (v4).'
+      message: 'RSVP endpoint sẵn sàng (v5 — có cột Khach_moi).'
     });
   } catch (err) {
     return jsonResponse({
