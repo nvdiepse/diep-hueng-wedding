@@ -1,16 +1,10 @@
-// Bot Facebook/Messenger scrape /m/... → redirect về / (đã có thumbnail cache).
-// Người dùng bấm link vẫn vào /m/... để mở đúng thiệp mời.
-const BOT_UA =
-  /facebookexternalhit|Facebot|meta-externalagent|FacebookBot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|Discordbot/i;
-
+// Không redirect bot nữa: / và /m/... đều phục vụ index.html (có OG).
+// Redirect 302 từng làm Messenger bỏ / không hiện ảnh trên link có param.
+// File giữ lại để Vercel không lỗi nếu còn reference; matcher không chặn gì.
 export const config = {
-  matcher: '/m/:path*',
+  matcher: ['/__middleware_noop__'],
 };
 
-export default function middleware(request) {
-  const ua = request.headers.get('user-agent') || '';
-  if (BOT_UA.test(ua)) {
-    const home = new URL('/', request.url);
-    return Response.redirect(home, 302);
-  }
+export default function middleware() {
+  return;
 }

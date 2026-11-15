@@ -12,13 +12,13 @@
   <meta property="og:title" content="Ngô Văn Điệp &amp; Nguyễn Thu Huệ — Đám Cưới 28 &amp; 29/11/2026" />
   <meta property="og:description" content="Trân trọng mời bạn đến chứng kiến ngày Ngô Văn Điệp &amp; Nguyễn Thu Huệ về chung một nhà. 28.11 Nhà Gái · 29.11 Nhà Trai" />
   <meta property="og:site_name" content="Ngô Văn Điệp &amp; Nguyễn Thu Huệ — Đám Cưới" />
-  <meta property="og:image" content="https://diep-hueng-wedding.vercel.app/og.jpg" />
-  <meta property="og:image:secure_url" content="https://diep-hueng-wedding.vercel.app/og.jpg" />
+  <meta property="og:image" content="https://diep-hueng-wedding.vercel.app/og.jpg?v=20261115" />
+  <meta property="og:image:secure_url" content="https://diep-hueng-wedding.vercel.app/og.jpg?v=20261115" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Ngô Văn Điệp &amp; Nguyễn Thu Huệ — Đám cưới" />
-  <meta itemprop="image" content="https://diep-hueng-wedding.vercel.app/og.jpg" />
+  <meta itemprop="image" content="https://diep-hueng-wedding.vercel.app/og.jpg?v=20261115" />
 
   <!-- SEO cơ bản -->
   <meta name="description" content="Trân trọng mời bạn dự lễ cưới Ngô Văn Điệp &amp; Nguyễn Thu Huệ — Lễ Vu Quy 28.11.2026 tại Dũng Minh White Palace (Thái Nguyên) &amp; Lễ Thành Hôn 29.11.2026 tại tư gia nhà trai (Hưng Yên)." />
@@ -27,14 +27,14 @@
   <meta name="theme-color" content="#d4708a" />
   <meta name="color-scheme" content="light" />
   <link rel="canonical" href="https://diep-hueng-wedding.vercel.app/" />
-  <link rel="image_src" href="https://diep-hueng-wedding.vercel.app/og.jpg" />
+  <link rel="image_src" href="https://diep-hueng-wedding.vercel.app/og.jpg?v=20261115" />
 
   <!-- Twitter / X Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://diep-hueng-wedding.vercel.app/" />
   <meta name="twitter:title" content="Ngô Văn Điệp &amp; Nguyễn Thu Huệ — Đám Cưới 28 &amp; 29/11/2026" />
   <meta name="twitter:description" content="Trân trọng mời bạn chứng kiến ngày chúng tôi về cùng một nhà. 28.11 Nhà Gái · 29.11 Nhà Trai" />
-  <meta name="twitter:image" content="https://diep-hueng-wedding.vercel.app/og.jpg" />
+  <meta name="twitter:image" content="https://diep-hueng-wedding.vercel.app/og.jpg?v=20261115" />
 
   <!-- Schema.org Event -->
   <script type="application/ld+json">
@@ -43,7 +43,7 @@
     "@type": "Event",
     "name": "Lễ cưới Ngô Văn Điệp & Nguyễn Thu Huệ",
     "description": "Trân trọng mời bạn dự lễ cưới Ngô Văn Điệp & Nguyễn Thu Huệ — Lễ Vu Quy 28.11.2026 & Lễ Thành Hôn 29.11.2026.",
-    "image": ["https://diep-hueng-wedding.vercel.app/og.jpg"],
+    "image": ["https://diep-hueng-wedding.vercel.app/og.jpg?v=20261115"],
     "url": "https://diep-hueng-wedding.vercel.app/",
     "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
     "eventStatus": "https://schema.org/EventScheduled",
@@ -4240,8 +4240,8 @@
 
   <script>
     // ── Invite modal + khách mời từ URL ──
-    // Định dạng chuẩn: /#ten-khach-moi=...&khach-moi=Nhà%20trai|Nhà%20gái
-    // Vẫn đọc được ?query và /m/... (link cũ)
+    // Share Messenger: ?ten-khach-moi=...&khach-moi=... (bot FB → / để lấy ảnh OG)
+    // #hash vẫn đọc được nhưng Messenger thường không hiện preview với #
     function readInviteFromUrl() {
       const searchParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(
@@ -4249,8 +4249,28 @@
       );
       const param = (key) => searchParams.get(key) || hashParams.get(key) || '';
 
+      // %2520 (encode 2 lần) → %20 → khoảng trắng; decode lặp an toàn
+      function decodeInviteValue(raw) {
+        let s = String(raw == null ? '' : raw);
+        if (!s) return '';
+        for (let i = 0; i < 5; i++) {
+          if (!/%[0-9A-Fa-f]{2}/.test(s)) break;
+          try {
+            const next = decodeURIComponent(s.replace(/\+/g, '%20'));
+            if (next === s) break;
+            s = next;
+          } catch (err) {
+            // Còn sót %2520 kiểu hỏng → thay thủ công rồi thử lại
+            const fixed = s.replace(/%25([0-9A-Fa-f]{2})/gi, '%$1');
+            if (fixed === s) break;
+            s = fixed;
+          }
+        }
+        return s.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
       function normalizeSide(raw) {
-        const s = (raw || '').trim().toLowerCase();
+        const s = decodeInviteValue(raw).toLowerCase();
         if (!s) return 'both';
         if (/trai|nhà trai|nha trai/.test(s)) return 'trai';
         if (/gái|gai|nhà gái|nha gai/.test(s)) return 'gai';
@@ -4262,17 +4282,19 @@
       let pathSide = '';
       const pathMatch = window.location.pathname.match(/^\/m\/([^/]+)(?:\/(.*))?\/?$/);
       if (pathMatch) {
-        pathSide = decodeURIComponent(pathMatch[1] || '').trim();
-        pathName = decodeURIComponent((pathMatch[2] || '').replace(/\/$/, '')).trim();
+        pathSide = decodeInviteValue(pathMatch[1] || '');
+        pathName = decodeInviteValue((pathMatch[2] || '').replace(/\/$/, ''));
       }
 
-      const guestName = (
+      const guestName = decodeInviteValue(
         pathName ||
         param('ten-khach-moi') ||
         param('ten_khach_moi') ||
         ''
-      ).trim();
-      const guestSideRaw = pathSide || param('khach-moi') || param('khach_moi') || '';
+      );
+      const guestSideRaw = decodeInviteValue(
+        pathSide || param('khach-moi') || param('khach_moi') || ''
+      );
       const sideMode = normalizeSide(guestSideRaw);
       const sideLabel =
         sideMode === 'trai' ? 'Nhà trai' : sideMode === 'gai' ? 'Nhà gái' : guestSideRaw ? 'Cả hai' : '';
@@ -4296,21 +4318,20 @@
       const searchParams = invite.searchParams;
       const hashParams = invite.hashParams;
 
-      // Chuẩn hoá về hash: /#ten-khach-moi=...&khach-moi=...
+      // Chuẩn hoá → ?query (giữ param khách; bot Messenger redirect / → ảnh OG cũ)
       if (guestName || guestSideRaw || searchParams.has('thiep') || searchParams.has('invite')) {
-        const hashParts = [];
-        if (guestName) hashParts.push('ten-khach-moi=' + encodeURIComponent(guestName));
+        const q = new URLSearchParams();
+        if (guestName) q.set('ten-khach-moi', guestName);
         if (guestSideRaw) {
-          hashParts.push(
-            'khach-moi=' + encodeURIComponent(sideMode === 'both' ? guestSideRaw : sideLabel)
-          );
+          q.set('khach-moi', sideMode === 'both' ? guestSideRaw : sideLabel);
         }
-        if (searchParams.has('thiep') || hashParams.has('thiep')) hashParts.push('thiep=1');
-        if (searchParams.has('invite') || hashParams.has('invite')) hashParts.push('invite=1');
-        const niceHash = '#' + hashParts.join('&');
-        const onInvitePath = /^\/m\//.test(window.location.pathname);
-        if (onInvitePath || window.location.search || window.location.hash !== niceHash) {
-          history.replaceState(null, '', '/' + niceHash);
+        if (searchParams.has('thiep') || hashParams.has('thiep')) q.set('thiep', '1');
+        if (searchParams.has('invite') || hashParams.has('invite')) q.set('invite', '1');
+        const nice = '/?' + q.toString();
+        const current =
+          window.location.pathname + window.location.search + window.location.hash;
+        if (current !== nice) {
+          history.replaceState(null, '', nice);
         }
       }
 
